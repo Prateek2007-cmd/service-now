@@ -3,6 +3,8 @@
 
 This directory houses the independent, production-grade Machine Learning classification service for the HERE student support platform. It is decoupled from the user-facing LLM conversational engine and provides explainable, reproducible, and verifiable intent and urgency routing signals.
 
+> 📖 **Comprehensive ML Masterclass & Defense Manual**: For a full first-principles mathematical and architectural guide covering all 23 lessons (theory, derivations, code, and judge defense scripts), see [**`docs/ml_masterclass.md`**](../docs/ml_masterclass.md).
+
 ---
 
 ## 1. Architectural Philosophy: Why ML is Used

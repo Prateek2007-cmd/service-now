@@ -395,6 +395,7 @@ Student Message
 ## 14. Documentation Directory
 
 Detailed documentation is available in the `docs/` folder:
+- **[`docs/ml_masterclass.md`](docs/ml_masterclass.md)**: **Complete 23-Part Machine Learning Masterclass & Judge Defense Guide** (from first principles to production).
 - **[`docs/architecture.md`](docs/architecture.md)**: Deep dive into the four-layer architecture, sequence diagrams, and security models.
 - **[`docs/api.md`](docs/api.md)**: Exhaustive REST API reference for all 18 endpoints.
 - **[`docs/ml.md`](docs/ml.md)**: Machine learning methodology, feature engineering, and evaluation benchmarks.

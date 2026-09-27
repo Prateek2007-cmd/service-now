@@ -1,0 +1,132 @@
+text,intent,urgency
+"I can't keep up with assignments and coursework",academic_support,green
+"Exams are overwhelming me and I can't concentrate or sleep",academic_support,amber
+"I need study strategies for my midterm exams next week",academic_support,green
+"I failed two quizzes and I'm terrified I will fail this semester",academic_support,amber
+"Can I request a coursework deadline extension from my professor",academic_support,green
+"I have three final exams on the same day and need exam rescheduling",academic_support,green
+"I don't understand the lectures in advanced algorithms and need tutoring",academic_support,green
+"I've been skipping classes because the workload is too heavy",academic_support,amber
+"I need help organizing my study schedule for upcoming finals",academic_support,green
+"I can't focus on my readings and keep zoning out",academic_support,green
+"I feel like everyone in my engineering program is smarter than me",academic_support,green
+"I need academic writing support for my dissertation",academic_support,green
+"My GPA has dropped significantly and I risk academic probation",academic_support,amber
+"I need tutoring in organic chemistry and math statistics",academic_support,green
+"I am struggling with time management between labs and lectures",academic_support,green
+"I don't know how to prepare for open book examinations",academic_support,green
+"I missed an exam due to illness and need medical extenuating circumstances",academic_support,amber
+"I need advice on changing my minor or taking an academic leave",academic_support,green
+"I am behind on five problem sets and don't know where to start",academic_support,amber
+"Can I appeal a grade on my midterm paper",academic_support,green
+"I need peer tutoring for physics coursework",academic_support,green
+"I'm overwhelmed by the volume of reading required for seminar",academic_support,green
+"I am feeling intense panic and dread before every lecture",counselling_wellbeing,amber
+"I haven't slept properly in three weeks and feel drained",counselling_wellbeing,amber
+"I've been feeling deeply depressed and unable to get out of bed",counselling_wellbeing,amber
+"I'm feeling really anxious about my life and future",counselling_wellbeing,green
+"I get sudden panic attacks when speaking in group seminars",counselling_wellbeing,amber
+"I feel completely burned out and have no emotional energy left",counselling_wellbeing,amber
+"I want to speak with a therapist or student counsellor confidentially",counselling_wellbeing,green
+"I'm dealing with grief from a family loss and can't focus",counselling_wellbeing,amber
+"My stress levels are through the roof and I feel overwhelmed all day",counselling_wellbeing,amber
+"I feel constant nervous tension and my chest feels tight",counselling_wellbeing,amber
+"I need guidance on managing exam stress and mindfulness techniques",counselling_wellbeing,green
+"I'm having trouble with low self esteem and imposter syndrome",counselling_wellbeing,green
+"I keep crying in my dorm and feel hopeless about everything",counselling_wellbeing,amber
+"My anxiety is keeping me awake until 5 AM every night",counselling_wellbeing,amber
+"I feel completely numb and detached from people around me",counselling_wellbeing,amber
+"I need confidential psychological counselling for personal stress",counselling_wellbeing,green
+"I have been struggling with body image and eating habits",counselling_wellbeing,amber
+"I feel paralyzed by social anxiety whenever I leave my room",counselling_wellbeing,amber
+"I want to end my life, please help me",counselling_wellbeing,red
+"I don't want to live anymore, nobody would miss me",counselling_wellbeing,red
+"I might hurt myself tonight, I can't take this pain anymore",counselling_wellbeing,red
+"I'm thinking of suicide because everything is overwhelming",counselling_wellbeing,red
+"I am in immediate crisis and need someone right now",counselling_wellbeing,red
+"I cannot afford my tuition fee installment due this Friday",financial_assistance,amber
+"I don't have enough money for groceries and rent this month",financial_assistance,amber
+"How do I apply for the emergency student hardship grant",financial_assistance,green
+"My student loan payment was delayed and I am running out of money",financial_assistance,amber
+"I need advice on budgeting and managing living costs on campus",financial_assistance,green
+"I lost my part-time campus job and can't pay my bills",financial_assistance,amber
+"Are there bursaries available for international students",financial_assistance,green
+"I'm facing unexpected medical expenses and need financial aid",financial_assistance,amber
+"My family cannot support my semester fees anymore",financial_assistance,amber
+"Can I set up a monthly payment plan for my university accommodation",financial_assistance,green
+"I have zero dollars in my bank account and can't buy food today",financial_assistance,red
+"My bank account is overdrawn and tuition penalty fees are adding up",financial_assistance,amber
+"Where can I find emergency food vouchers on campus",financial_assistance,amber
+"I need advice on managing credit card debt accumulated during college",financial_assistance,green
+"Can the financial aid office help with emergency travel expenses",financial_assistance,green
+"I am working 35 hours a week just to pay tuition and falling behind",financial_assistance,amber
+"Are there emergency grants for laptop repairs for low income students",financial_assistance,green
+"How do I apply for government student maintenance allowance",financial_assistance,green
+"I haven't left my dorm room in days and feel completely isolated",student_affairs,amber
+"I have no friends on campus and feel homesick every evening",student_affairs,green
+"How do I join student societies and clubs to meet people",student_affairs,green
+"I feel invisible and disconnected from campus life",student_affairs,green
+"I'm having persistent conflict with my flatmates in the hall",student_affairs,green
+"I was harassed during a campus event and need to report it",student_affairs,amber
+"I want to know about student mentor programs for first years",student_affairs,green
+"I feel alienated and struggle to adjust to university culture",student_affairs,green
+"I want to volunteer on campus and get involved with student union",student_affairs,green
+"My flatmates are throwing loud parties every night and I can't rest",student_affairs,green
+"I feel like I don't belong at this university and want to drop out",student_affairs,amber
+"Where do I report bullying or microaggressions in student dorms",student_affairs,amber
+"I want to start a new cultural student society on campus",student_affairs,green
+"Are there social groups for international postgraduate students",student_affairs,green
+"My landlord gave me an eviction notice and I have nowhere to stay",housing,red
+"The heating and hot water in my student flat have been broken for weeks",housing,green
+"I need urgent temporary accommodation on campus",housing,amber
+"My roommate is hostile and I feel unsafe in my dorm",housing,amber
+"Can I transfer to a different university residence hall",housing,green
+"I am an international student struggling to find a safe rental contract",housing,green
+"I might be homeless by the end of this week if I can't find a room",housing,red
+"I need emergency accommodation support tonight",housing,red
+"There is black mold in my student apartment making me cough",housing,amber
+"My private landlord refused to return my tenancy deposit",housing,green
+"I need legal guidance on breaking an unfair student tenancy agreement",housing,green
+"My dorm lock is broken and my room cannot be secured",housing,amber
+"I need on-campus housing accommodations for summer break",housing,green
+"I have ADHD and need exam accommodation for extra time",accessibility,green
+"I am visually impaired and need course materials in accessible format",accessibility,green
+"I have chronic illness flareups causing attendance gaps",accessibility,amber
+"How do I register for disability and neurodivergent learning support",accessibility,green
+"I need ergonomic equipment and note-taking software for lectures",accessibility,green
+"I need extra time on my written exams due to dyslexia",accessibility,green
+"I use a wheelchair and an elevator in the science building is broken",accessibility,amber
+"I have severe hearing impairment and need live captioning in classes",accessibility,green
+"I need peer note-takers approved by disability support services",accessibility,green
+"I have autism and need a quiet sensory room during exam periods",accessibility,green
+"My doctor recommended special attendance accommodations for chronic fatigue",accessibility,amber
+"I need accessible transport assistance between campuses",accessibility,green
+"I'm graduating in two months and don't have a job or internship lined up",career_support,green
+"I need help writing my resume and cover letter for tech internships",career_support,green
+"I have an interview next week and need mock interview practice",career_support,green
+"I don't know what career path fits my major and need career guidance",career_support,green
+"Where can I find on-campus student work opportunities",career_support,green
+"I need advice on post-study work visas and graduate schemes",career_support,green
+"How do I connect with university alumni working in finance",career_support,green
+"I need someone to review my portfolio for design internship applications",career_support,green
+"Are there career fairs for engineering students this semester",career_support,green
+"I want advice on applying to graduate school and masters programs",career_support,green
+"What are the library opening hours during exam revision week",general_support,green
+"Where is the student services hub located on the central campus",general_support,green
+"How do I replace my lost student ID card",general_support,green
+"I need official proof of enrollment letter for my bank",general_support,green
+"Where can I find IT support for campus wifi connectivity",general_support,green
+"How do I register for health insurance as a foreign student",general_support,green
+"Where can I find quiet study pods on north campus",general_support,green
+"How do I submit my immunization verification records",general_support,green
+"Exams are next week and I'm stressed about rent and can't sleep",multi_support,amber
+"I am failing my classes, running out of money, and feeling depressed",multi_support,amber
+"My academic pressure is triggering severe anxiety and financial worries",multi_support,amber
+"I have chronic health issues and can't keep up with course deadlines",multi_support,amber
+"I need help with academic workload, bursary grants, and counselling",multi_support,amber
+"I am overwhelmed with exams, facing eviction, and feeling hopeless",multi_support,red
+"Everything is falling apart with my grades, my housing, and my mental health",multi_support,amber
+"I need mental wellbeing support and academic concession advice",multi_support,amber
+"I have visa issues, no money for tuition, and panic attacks",multi_support,amber
+"My landlord locked me out, my coursework is due tomorrow, and I'm crying",multi_support,red
+"I need disability accommodations and emergency financial assistance",multi_support,amber

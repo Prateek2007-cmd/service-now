@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HERESupportPlatformDatabaseSchema",
+  "description": "Relational and Document Schema definition for ServiceNow Student Challenge Track 4: HERE Self-Service Support Portal",
+  "entities": {
+    "User": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "name": { "type": "string" },
+        "email": { "type": "string", "unique": true },
+        "passwordHash": { "type": "string" },
+        "role": { "type": "string", "enum": ["STUDENT", "COUNSELLOR", "ADMIN"] },
+        "department": { "type": "string" },
+        "year": { "type": "string", "nullable": true },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "StudentProfile": {
+      "fields": {
+        "studentId": { "type": "string", "foreignKey": "User.id" },
+        "anonymousIdentifier": { "type": "string" },
+        "consentSettings": { "type": "object" },
+        "preferredSupportModality": { "type": "string" }
+      }
+    },
+    "Conversation": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "studentId": { "type": "string", "foreignKey": "User.id" },
+        "stage": { "type": "string" },
+        "safetyStatus": { "type": "string", "enum": ["NORMAL", "SAFETY_SIGNAL", "IMMEDIATE_DANGER", "HUMAN_HANDOFF"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Message": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "conversationId": { "type": "string", "foreignKey": "Conversation.id" },
+        "sender": { "type": "string", "enum": ["student", "assistant", "counsellor", "system"] },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "options": { "type": "array", "nullable": true },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Case": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "studentId": { "type": "string", "foreignKey": "User.id" },
+        "studentName": { "type": "string" },
+        "conversationId": { "type": "string", "foreignKey": "Conversation.id" },
+        "status": { "type": "string", "enum": ["SUBMITTED", "ASSIGNED_TO_COUNSELLOR", "COUNSELLOR_ACCEPTED", "APPOINTMENT_SCHEDULED", "IN_PROGRESS", "FOLLOW_UP", "RESOLVED"] },
+        "intent": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["GREEN", "AMBER", "RED"] },
+        "confidence": { "type": "number" },
+        "themes": { "type": "array" },
+        "duration": { "type": "string", "nullable": true },
+        "impact": { "type": "object", "nullable": true },
+        "studentApprovedSummary": { "type": "string" },
+        "counsellorClinicalSummary": { "type": "string" },
+        "assignedDepartment": { "type": "string" },
+        "assignedCounsellor": { "type": "string" },
+        "appointmentId": { "type": "string", "nullable": true },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CaseAnalysis": {
+      "fields": {
+        "caseId": { "type": "string", "foreignKey": "Case.id" },
+        "mlIntentPredictions": { "type": "object" },
+        "mlUrgencyPredictions": { "type": "object" },
+        "routingExplanation": { "type": "string" }
+      }
+    },
+    "SupportDepartment": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "name": { "type": "string" },
+        "head": { "type": "string" },
+        "activeLoad": { "type": "number" },
+        "capacity": { "type": "number" }
+      }
+    },
+    "Counsellor": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "department": { "type": "string" },
+        "role": { "type": "string" },
+        "availability": { "type": "array" }
+      }
+    },
+    "Appointment": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "caseId": { "type": "string", "foreignKey": "Case.id" },
+        "studentId": { "type": "string", "foreignKey": "User.id" },
+        "counsellorName": { "type": "string" },
+        "department": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "modality": { "type": "string" },
+        "status": { "type": "string", "enum": ["available", "booked", "cancelled", "completed"] }
+      }
+    },
+    "WaitlistEntry": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "studentId": { "type": "string", "foreignKey": "User.id" },
+        "caseId": { "type": "string", "foreignKey": "Case.id" },
+        "department": { "type": "string" },
+        "urgency": { "type": "string" },
+        "requestedTimeframe": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["waiting", "offered_slot", "swapped", "resolved"] }
+      }
+    },
+    "Resource": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string" },
+        "duration": { "type": "string" },
+        "tags": { "type": "array" }
+      }
+    },
+    "Notification": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "userId": { "type": "string", "foreignKey": "User.id" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "read": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "JourneyEvent": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "caseId": { "type": "string", "foreignKey": "Case.id" },
+        "studentId": { "type": "string", "foreignKey": "User.id" },
+        "title": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "desc": { "type": "string" },
+        "status": { "type": "string", "enum": ["completed", "active", "pending"] },
+        "color": { "type": "string" }
+      }
+    },
+    "AuditLog": {
+      "fields": {
+        "id": { "type": "string", "primaryKey": true },
+        "actorId": { "type": "string" },
+        "action": { "type": "string" },
+        "entityId": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

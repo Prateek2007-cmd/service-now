@@ -1,0 +1,190 @@
+{
+  "users": [
+    {
+      "id": "STU-88219",
+      "name": "Aarav Sharma",
+      "email": "student@here.demo",
+      "passwordHash": "HEREdemo123",
+      "role": "STUDENT",
+      "department": "School of Computer Science & Engineering",
+      "year": "3rd Year Undergraduate",
+      "avatarInitials": "AS",
+      "avatarColor": "#F4B6D7",
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "COUNS-4011",
+      "name": "Dr. Sarah Jenkins",
+      "email": "counsellor@here.demo",
+      "passwordHash": "HEREdemo123",
+      "role": "COUNSELLOR",
+      "department": "Counselling & Mental Wellbeing",
+      "title": "Senior Clinical Wellbeing Lead",
+      "avatarInitials": "SJ",
+      "avatarColor": "#8EDCF2",
+      "createdAt": "2026-08-15T09:00:00.000Z"
+    },
+    {
+      "id": "ADMIN-9001",
+      "name": "Elena Rostova",
+      "email": "admin@here.demo",
+      "passwordHash": "HEREdemo123",
+      "role": "ADMIN",
+      "department": "University Student Care Operations",
+      "title": "Director of Unified Support & Multi-Department Routing",
+      "avatarInitials": "ER",
+      "avatarColor": "#EBA756",
+      "createdAt": "2026-08-01T08:00:00.000Z"
+    }
+  ],
+  "departments": [
+    { "id": "DEPT-1", "name": "Counselling & Mental Wellbeing", "lead": "Dr. Sarah Jenkins", "activeLoad": 38, "capacity": 50, "avgResponseHours": 1.4 },
+    { "id": "DEPT-2", "name": "Academic Support & Tutoring", "lead": "Marcus Vance", "activeLoad": 42, "capacity": 60, "avgResponseHours": 2.1 },
+    { "id": "DEPT-3", "name": "Financial Assistance & Emergency Grants", "lead": "Elena Rostova", "activeLoad": 29, "capacity": 40, "avgResponseHours": 1.8 },
+    { "id": "DEPT-4", "name": "Student Affairs & Campus Life", "lead": "Chloe Zhao", "activeLoad": 18, "capacity": 35, "avgResponseHours": 3.0 },
+    { "id": "DEPT-5", "name": "Housing & International Student Support", "lead": "David Kim", "activeLoad": 25, "capacity": 30, "avgResponseHours": 1.2 },
+    { "id": "DEPT-6", "name": "Accessibility & Disability Services", "lead": "Rachel Sterling", "activeLoad": 15, "capacity": 25, "avgResponseHours": 2.4 }
+  ],
+  "counsellors": [
+    { "id": "C-1", "name": "Dr. Sarah Jenkins", "department": "Counselling & Mental Wellbeing", "role": "Senior Clinical Wellbeing Lead", "availableSlotsCount": 6 },
+    { "id": "C-2", "name": "Marcus Vance", "department": "Academic Support & Tutoring", "role": "Head of Academic Strategy", "availableSlotsCount": 4 },
+    { "id": "C-3", "name": "Elena Rostova", "department": "Financial Assistance & Emergency Grants", "role": "Director of Student Bursaries", "availableSlotsCount": 5 }
+  ],
+  "appointments": [
+    { "id": "SLOT-1", "day": "Today", "period": "afternoon", "date": "Today, Oct 28", "time": "4:30 PM", "modality": "Confidential Video Consultation", "counsellorName": "Dr. Sarah Jenkins", "department": "Counselling & Mental Wellbeing", "status": "available" },
+    { "id": "SLOT-2", "day": "Tomorrow", "period": "morning", "date": "Tomorrow, Oct 29", "time": "11:00 AM", "modality": "Sanctuary Suite 204 (In-Person)", "counsellorName": "Dr. Sarah Jenkins", "department": "Counselling & Mental Wellbeing", "status": "available" },
+    { "id": "SLOT-3", "day": "Tomorrow", "period": "afternoon", "date": "Tomorrow, Oct 29", "time": "12:30 PM", "modality": "Confidential Video Consultation", "counsellorName": "Dr. Sarah Jenkins", "department": "Counselling & Mental Wellbeing", "status": "available" },
+    { "id": "SLOT-4", "day": "Tomorrow", "period": "afternoon", "date": "Tomorrow, Oct 29", "time": "3:30 PM", "modality": "Sanctuary Suite 204 or Video", "counsellorName": "Dr. Sarah Jenkins", "department": "Counselling & Mental Wellbeing", "status": "available" },
+    { "id": "SLOT-5", "day": "Thursday", "period": "morning", "date": "Thursday, Oct 30", "time": "10:00 AM", "modality": "Academic Strategy Office", "counsellorName": "Marcus Vance", "department": "Academic Support & Tutoring", "status": "available" }
+  ],
+  "cases": [
+    {
+      "id": "CASE-2026-00142",
+      "studentId": "STU-88219",
+      "studentName": "Aarav Sharma",
+      "createdAt": "2026-09-27T10:24:00.000Z",
+      "lastUpdated": "2026-09-27T10:45:00.000Z",
+      "status": "COUNSELLOR_ACCEPTED",
+      "intent": "ACADEMIC_AND_WELLBEING",
+      "isMultiDepartment": true,
+      "urgency": "AMBER",
+      "confidence": 0.94,
+      "themes": [
+        { "label": "Academic Pressure", "relevance": "High", "color": "#8EDCF2" },
+        { "label": "Difficulty concentrating", "relevance": "High", "color": "#8EDCF2" },
+        { "label": "Sleep difficulty", "relevance": "High", "color": "#F4B6D7" }
+      ],
+      "recommendedDepartments": ["Counselling & Mental Wellbeing", "Academic Support & Tutoring"],
+      "assignedDepartment": "Counselling & Mental Wellbeing",
+      "assignedCounsellor": "Dr. Sarah Jenkins",
+      "studentApprovedSummary": "Student has been experiencing pressure from upcoming exams, difficulty concentrating and reduced sleep for approximately two weeks.",
+      "counsellorClinicalSummary": "Primary presentation: Academic exam friction triggering severe sleep deprivation (~4 hrs/night) ongoing for 14 days. Student requested low-barrier 1-on-1 strategy session without repeating intake.",
+      "appointment": {
+        "id": "APT-9041",
+        "counsellor": "Dr. Sarah Jenkins",
+        "dept": "Counselling & Mental Wellbeing",
+        "date": "Tomorrow, Oct 29",
+        "time": "3:30 PM",
+        "modality": "Sanctuary Suite 204 or Video",
+        "status": "confirmed"
+      },
+      "messages": [
+        {
+          "id": "MSG-INIT-1",
+          "sender": "student",
+          "senderName": "Aarav Sharma",
+          "text": "Exams are next week and I'm struggling to concentrate and barely sleeping.",
+          "time": "10:24 AM",
+          "timestamp": "2026-09-27T10:24:00.000Z"
+        },
+        {
+          "id": "MSG-COUNS-1",
+          "sender": "counsellor",
+          "senderName": "Dr. Sarah Jenkins",
+          "text": "Hi Aarav, thanks for reaching out. I've reviewed your approved summary regarding exam stress and sleep disruption. We can talk through restorative sleep routines and workload mitigation tomorrow at 3:30 PM.",
+          "time": "10:45 AM",
+          "timestamp": "2026-09-27T10:45:00.000Z"
+        }
+      ],
+      "timeline": [
+        { "id": 1, "title": "Request Shared in Sanctuary", "timestamp": "Yesterday, 10:24 AM", "desc": "Shared concerns about exam pressure and sleep loss.", "status": "completed", "color": "#8DCFA9" },
+        { "id": 2, "title": "HERE Understood Context", "timestamp": "Yesterday, 10:25 AM", "desc": "Multi-turn clarification completed. Urgency identified as Amber.", "status": "completed", "color": "#8DCFA9" },
+        { "id": 3, "title": "Support Summary Approved by Student", "timestamp": "Yesterday, 10:28 AM", "desc": "Student confirmed AI Mirror without alteration.", "status": "completed", "color": "#8DCFA9" },
+        { "id": 4, "title": "Counselling & Academic Coordinated", "timestamp": "Yesterday, 10:30 AM", "desc": "Assigned to Dr. Sarah Jenkins. Appointment booked for 3:30 PM.", "status": "completed", "color": "#8DCFA9" },
+        { "id": 5, "title": "Counsellor Accepted Case & Messaged", "timestamp": "Yesterday, 10:45 AM", "desc": "Dr. Sarah Jenkins reviewed file and sent welcome message.", "status": "active", "color": "#EBA756" },
+        { "id": 6, "title": "Consultation Tomorrow at 3:30 PM", "timestamp": "Tomorrow", "desc": "Confidential meeting in Sanctuary Suite 204 or Video.", "status": "pending", "color": "#78746C" }
+      ]
+    }
+  ],
+  "waitlist": [
+    {
+      "id": "WAIT-101",
+      "studentId": "STU-99412",
+      "studentName": "Maya Chen",
+      "department": "Counselling & Mental Wellbeing",
+      "urgency": "AMBER",
+      "preferredPeriod": "afternoon",
+      "joinedAt": "2026-09-26T14:00:00.000Z",
+      "currentAppointment": "Friday at 4:00 PM",
+      "status": "waiting"
+    }
+  ],
+  "resources": [
+    {
+      "id": "RES-1",
+      "title": "Restorative Sleep Toolkit for Exam Weeks",
+      "category": "Sleep & Recovery",
+      "type": "Interactive Guide",
+      "duration": "6 min",
+      "description": "Evidence-backed sleep hygiene practices to calm racing thoughts before bed.",
+      "tags": ["Sleep", "Exams", "Stress", "Recovery"]
+    },
+    {
+      "id": "RES-2",
+      "title": "5-Minute Grounding & Somatic De-Escalation",
+      "category": "Mindfulness & Anxiety",
+      "type": "Audio Meditation",
+      "duration": "5 min",
+      "description": "Quick physiological sigh and sensory grounding for panic or acute overwhelm.",
+      "tags": ["Anxiety", "Panic", "Mindfulness", "Quick"]
+    },
+    {
+      "id": "RES-3",
+      "title": "Managing Academic Pressure & Study De-escalation",
+      "category": "Academic Strategy",
+      "type": "Resource Sheet",
+      "duration": "8 min",
+      "description": "How to break down heavy revision blocks and request formal coursework extensions.",
+      "tags": ["Academics", "Exams", "Coursework", "Extensions"]
+    },
+    {
+      "id": "RES-4",
+      "title": "Emergency Student Hardship Bursary Guide",
+      "category": "Financial Assistance",
+      "type": "Checklist",
+      "duration": "4 min",
+      "description": "Step-by-step guidance on zero-interest emergency living grants and fee payment plans.",
+      "tags": ["Finance", "Fees", "Rent", "Grants"]
+    }
+  ],
+  "notifications": [
+    {
+      "id": "NOTIF-1",
+      "userId": "STU-88219",
+      "title": "Counsellor Message",
+      "message": "Dr. Sarah Jenkins has reviewed your file and sent you a message.",
+      "type": "message",
+      "read": false,
+      "timestamp": "2026-09-27T10:45:00.000Z"
+    },
+    {
+      "id": "NOTIF-2",
+      "userId": "COUNS-4011",
+      "title": "New Case Assigned",
+      "message": "CASE-2026-00142 (Aarav Sharma) has been assigned to your care queue.",
+      "type": "case_assigned",
+      "read": true,
+      "timestamp": "2026-09-27T10:30:00.000Z"
+    }
+  ]
+}

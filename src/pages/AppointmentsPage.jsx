@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, ChevronRight, User, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
-import { getStore, bookAppointment, getCurrentCase } from '../services/store';
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, ChevronRight, User, ShieldCheck, Sparkles, ArrowRight, History } from 'lucide-react';
+import { getStore, bookAppointment, getCurrentCase, getContinuityContext } from '../services/store';
+import { BookingContinuityBanner } from '../components/SessionFeedback';
 
 export default function AppointmentsPage({ onNavigate }) {
   const store = getStore();
@@ -10,8 +11,19 @@ export default function AppointmentsPage({ onNavigate }) {
   const [selectedDate, setSelectedDate] = useState('Wednesday, Oct 28');
   const [selectedTime, setSelectedTime] = useState('02:30 PM');
   const [selectedCounsellor, setSelectedCounsellor] = useState('Dr. Sarah Jenkins');
-  const [isBooked, setIsBooked] = useState(false);
-  const [bookedDetails, setBookedDetails] = useState(null);
+  const [justBooked, setJustBooked] = useState(null);
+  // Surfaced when the store refuses a booking (e.g. a live appointment exists).
+  const [bookError, setBookError] = useState('');
+
+  // The store is the source of truth for "is there a live booking". Previously this
+  // was local useState, so navigating away and back showed the form again and
+  // invited a double booking over an existing appointment.
+  const liveAppointment = currentCase?.appointment && currentCase.appointment.status !== 'cancelled'
+    ? currentCase.appointment
+    : null;
+  const isBooked = !!liveAppointment;
+  const bookedDetails = liveAppointment;
+  const continuity = getContinuityContext(currentCase);
 
   const departments = [
     'Counselling & Mental Wellbeing',
@@ -46,7 +58,7 @@ export default function AppointmentsPage({ onNavigate }) {
   ];
 
   const handleConfirm = () => {
-    const apt = bookAppointment({
+    const result = bookAppointment({
       caseId: currentCase?.id || 'CASE-2026-00142',
       counsellorName: selectedCounsellor,
       dept: selectedDept,
@@ -55,8 +67,16 @@ export default function AppointmentsPage({ onNavigate }) {
       modality: 'Confidential 1-on-1 Consultation'
     });
 
-    setBookedDetails(apt);
-    setIsBooked(true);
+    // A refused booking (existing live appointment, or an unknown case) must not
+    // be reported to the student as a confirmed session.
+    if (!result?.success) {
+      setBookError(result?.error || 'Could not book that slot.');
+      return;
+    }
+
+    setBookError('');
+    setBookedDetails(result.appointment);
+    setJustBooked(true);
   };
 
   return (
@@ -110,6 +130,9 @@ export default function AppointmentsPage({ onNavigate }) {
               border: '1px solid rgba(255, 255, 255, 0.06)',
             }}
           >
+            {/* Returning student: show the history BEFORE they choose a new time */}
+            <BookingContinuityBanner caseObj={currentCase} onNavigate={onNavigate} />
+
             {/* Step 1: Department Selection */}
             <div style={{ marginBottom: '2.5rem' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#FAF8F5', marginBottom: '12px' }}>
@@ -258,6 +281,22 @@ export default function AppointmentsPage({ onNavigate }) {
             </div>
 
             {/* Confirmation CTA */}
+            {bookError && (
+              <div
+                role="alert"
+                style={{
+                  marginBottom: '14px',
+                  padding: '11px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(252,165,165,0.10)',
+                  border: '1px solid rgba(252,165,165,0.30)',
+                  color: '#FCA5A5',
+                  fontSize: '13px'
+                }}
+              >
+                {bookError}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#78746C' }}>
                 <ShieldCheck size={16} color="#8DCFA9" />
@@ -304,11 +343,44 @@ export default function AppointmentsPage({ onNavigate }) {
             </div>
 
             <h2 style={{ fontSize: '28px', fontWeight: 650, color: '#FAF8F5', marginBottom: '8px' }}>
-              Your Session Is Confirmed
+              {continuity.isReturning ? 'Your next session is confirmed' : 'Your Session Is Confirmed'}
             </h2>
-            <p style={{ fontSize: '15px', color: '#B8B3AA', maxWidth: '520px', margin: '0 auto 2rem', lineHeight: 1.6 }}>
-              A confidential consultation has been reserved with <strong style={{ color: '#FAF8F5' }}>{selectedCounsellor}</strong> for <strong style={{ color: '#FAF8F5' }}>{selectedDate} at {selectedTime}</strong>.
+            <p style={{ fontSize: '15px', color: '#B8B3AA', maxWidth: '520px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+              A confidential consultation has been reserved with <strong style={{ color: '#FAF8F5' }}>{bookedDetails?.counsellor || selectedCounsellor}</strong> for <strong style={{ color: '#FAF8F5' }}>{bookedDetails?.date || selectedDate} at {bookedDetails?.time || selectedTime}</strong>.
             </p>
+
+            {/* Continuity: this is the point of the whole feature. */}
+            {continuity.isReturning && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '11px',
+                  padding: '15px 17px',
+                  borderRadius: '14px',
+                  background: 'rgba(142, 220, 242, 0.08)',
+                  border: '1px solid rgba(142, 220, 242, 0.2)',
+                  maxWidth: '520px',
+                  margin: '0 auto 1.5rem',
+                  textAlign: 'left',
+                }}
+              >
+                <History size={16} color="#8EDCF2" style={{ marginTop: 2, flexShrink: 0 }} />
+                <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#B8B3AA' }}>
+                  Your previous {continuity.sessionCount} session
+                  {continuity.sessionCount === 1 ? '' : 's'} and {continuity.sessionCount === 1 ? 'review' : 'reviews'} travel
+                  with this booking. {bookedDetails?.counsellor || selectedCounsellor} can see where you left off — no
+                  starting over.
+                </p>
+              </div>
+            )}
+
+            {bookedDetails?.priorSessionCount > 0 && (
+              <p style={{ fontSize: '12.5px', color: '#78746C', marginBottom: '1.5rem' }}>
+                Carrying forward {bookedDetails.priorSessionCount} prior session record
+                {bookedDetails.priorSessionCount === 1 ? '' : 's'}.
+              </p>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <button
@@ -325,6 +397,16 @@ export default function AppointmentsPage({ onNavigate }) {
                 style={{ fontSize: '14px', padding: '12px 22px' }}
               >
                 <span>Explore Calming Bridge Resources</span>
+              </button>
+            </div>
+
+            {/* Reschedule / rebook carries the record forward */}
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <button
+                onClick={() => onNavigate('/chat')}
+                style={{ background: 'none', border: 'none', color: '#78746C', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Need a different time? Book again — your history comes with it →
               </button>
             </div>
           </div>

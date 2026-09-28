@@ -4,6 +4,7 @@ import HowItWorksSection from '../components/HowItWorksSection';
 import SupportGrid from '../components/SupportGrid';
 import MyJourneyView from '../components/MyJourneyView';
 import StoriesSection from '../components/StoriesSection';
+import PulseCheckIn from '../components/PulseCheckIn';
 import ResourcesSection from '../components/ResourcesSection';
 import FooterCTA from '../components/FooterCTA';
 
@@ -22,13 +23,16 @@ export default function HomePage({ onNavigate, onStartChat }) {
       {/* 4. My Journey / Your journey, our support */}
       <MyJourneyView onNavigate={onNavigate} />
 
-      {/* 5. Stories / Real people. Real experiences */}
-      <StoriesSection onNavigate={onNavigate} />
+      {/* 5. Daily Pulse / One honest minute a day */}
+      <PulseCheckIn onNavigate={onNavigate} onStartChat={onStartChat} />
 
-      {/* 6. Resources / Helpful resources for your journey */}
+      {/* 6. Stories / The anonymous story wall */}
+      <StoriesSection onNavigate={onNavigate} onStartChat={onStartChat} />
+
+      {/* 7. Resources / Helpful resources for your journey */}
       <ResourcesSection onNavigate={onNavigate} />
 
-      {/* 7. Bottom CTA / Support is just a conversation away */}
+      {/* 8. Bottom CTA / Support is just a conversation away */}
       <FooterCTA onNavigate={onNavigate} />
     </div>
   );

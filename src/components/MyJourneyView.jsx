@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect } from 'react';import {
   CheckCircle2, 
   Clock, 
   Calendar, 
@@ -18,7 +17,9 @@ import {
   Volume2,
   FileText,
   RotateCcw,
-  Send
+  Send,
+  Users,
+  Bell
 } from 'lucide-react';
 import { 
   getCurrentCase, 
@@ -28,10 +29,16 @@ import {
   acceptWaitlistOffer, 
   declineWaitlistOffer,
   sendStudentCaseMessage,
-  bookAppointment
+  bookAppointment,
+  isSessionStillUpcoming
 } from '../services/store';
 import { analyzeStudentMessage } from '../services/nlpService';
 import { getBridgeResourcesForThemes } from '../services/semanticSearchService';
+import QuietBuddyInvite from './QuietBuddyInvite';
+import { BuddyTrackerView, BuddyPrivacyPreview } from './QuietBuddyTracker';
+import { subscribeBuddy, hasBuddy } from '../services/quietBuddyService';
+import SessionFeedback from './SessionFeedback';
+import DemoClockPanel from './DemoClockPanel';
 
 // SECTION 61: LIVE CASE STATUS STAGES
 const CASE_STAGES = [
@@ -70,6 +77,11 @@ export default function MyJourneyView({ onNavigate }) {
   // Student messaging state
   const [studentReplyText, setStudentReplyText] = useState('');
   const [replyFeedback, setReplyFeedback] = useState('');
+
+  // Quiet Buddy state, so the tracker and reminders re-render when they change.
+  const [buddyActive, setBuddyActive] = useState(() => hasBuddy());
+
+  useEffect(() => subscribeBuddy(() => setBuddyActive(hasBuddy())), []);
 
   useEffect(() => {
     return subscribeStore((updated) => {
@@ -363,6 +375,111 @@ export default function MyJourneyView({ onNavigate }) {
               );
             })}
           </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* SESSION REVIEW: the two-question post-session check-in */}
+        {/* ======================================================== */}
+        {activeCase?.appointment && (
+          <div style={{ marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '16px' }}>
+              <MessageSquare size={17} color="#F4B6D7" />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#F4B6D7', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                After your session
+              </span>
+            </div>
+
+            {/* Upcoming: say so plainly instead of showing an empty card. */}
+            {isSessionStillUpcoming(activeCase) && (
+              <div
+                className="glass-panel"
+                style={{ borderRadius: '20px', padding: '22px 24px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '13px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '11px',
+                      background: 'rgba(235, 167, 86, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Calendar size={18} color="#EBA756" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#FAF8F5', marginBottom: '3px' }}>
+                      Your session hasn't happened yet
+                    </div>
+                    <div style={{ fontSize: '12.5px', color: '#78746C' }}>
+                      {activeCase.appointment.date} at {activeCase.appointment.time} with {activeCase.appointment.counsellor}
+                    </div>
+                  </div>
+                </div>
+                <p style={{ fontSize: '13.5px', lineHeight: 1.65, color: '#B8B3AA', marginTop: '14px' }}>
+                  After it's done, we'll ask you two quick questions. Whatever you answer travels with you to the next
+                  session — and we'll remind you right after, so it never slips.
+                </p>
+              </div>
+            )}
+
+            <SessionFeedback caseObj={activeCase} onNavigate={onNavigate} />
+
+            {/* The simulator, so the loop is demonstrable without waiting. */}
+            <DemoClockPanel onNavigate={onNavigate} />
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* QUIET BUDDY: shared milestone tracker + privacy preview */}
+        {/* ======================================================== */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          {buddyActive ? (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  marginBottom: '16px',
+                }}
+              >
+                <Users size={17} color="#C7B8F5" />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#C7B8F5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Your Quiet Buddy
+                </span>
+              </div>
+
+              {/* What they see */}
+              <BuddyTrackerView caseObj={activeCase} studentName={activeCase?.studentName} />
+
+              {/* What they don't */}
+              <BuddyPrivacyPreview caseObj={activeCase} studentName={activeCase?.studentName} onNavigate={onNavigate} />
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  marginBottom: '16px',
+                }}
+              >
+                <Users size={17} color="#78746C" />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#78746C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Quiet Buddy · Optional
+                </span>
+              </div>
+              <QuietBuddyInvite
+                studentName={activeCase?.studentName}
+                caseId={activeCase?.id || null}
+              />
+            </>
+          )}
         </div>
 
         {/* 2-Column Layout: Left Active Journey + Right Specialist & Messages */}

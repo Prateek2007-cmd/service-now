@@ -1,16 +1,46 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Trash2, CheckCircle, Lock, RefreshCw, Key } from 'lucide-react';
+import { Shield, Eye, Trash2, CheckCircle, Lock, RefreshCw, Key, Activity, MessageCircle } from 'lucide-react';
+import { clearAll as clearPulse, getEntries as getPulseEntries } from '../services/pulseService';
+import { getStories, deleteOwnStory } from '../services/storyWallService';
+import { resetDemoData } from '../services/store';
 
 export default function SettingsPage({ onNavigate }) {
   const [historySaved, setHistorySaved] = useState(true);
   const [anonymizedStats, setAnonymizedStats] = useState(false);
   const [sessionAutoPurge, setSessionAutoPurge] = useState(true);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
+  const [purged, setPurged] = useState(null);
+
+  const pulseCount = getPulseEntries().length;
+  const ownStories = getStories().filter((s) => s.mine).length;
 
   const handleDeleteHistory = () => {
-    if (confirm("Are you sure you want to permanently purge all conversation history and temporary signals from this browser?")) {
+    if (
+      confirm(
+        'Permanently purge all conversation history, routing signals, mood check-ins, and your story wall posts from this browser? This cannot be undone.'
+      )
+    ) {
+      // Clear every local key HERE owns.
+      const owned = [
+        'HERE_PLATFORM_STATE_V1',
+        'HERE_PULSE_V1',
+        'HERE_STORY_WALL_V1',
+        'HERE_STORY_REACTED',
+        'HERE_STORY_WALL_SEEDED_V1',
+      ];
+      owned.forEach((k) => {
+        try {
+          localStorage.removeItem(k);
+        } catch (e) {
+          /* storage unavailable */
+        }
+      });
+      getStories().filter((s) => s.mine).forEach((s) => deleteOwnStory(s.id));
+      clearPulse();
+      resetDemoData();
+      setPurged({ pulse: pulseCount, stories: ownStories });
       setDeletedSuccess(true);
-      setTimeout(() => setDeletedSuccess(false), 3000);
+      setTimeout(() => setDeletedSuccess(false), 4000);
     }
   };
 
@@ -126,6 +156,52 @@ export default function SettingsPage({ onNavigate }) {
             <p style={{ fontSize: '14px', color: '#9BA4B5', lineHeight: 1.6, marginBottom: '16px' }}>
               You may purge your active conversation record or reset all personalized routing state at any time.
             </p>
+
+            {pulseCount > 0 || ownStories > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(8,14,24,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <Activity size={14} color="#8EDCF2" />
+                    <span style={{ fontSize: '13.5px', color: '#F5F4F2', fontWeight: 500 }}>Mood check-ins</span>
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: '#64748B' }}>
+                    {pulseCount} day{pulseCount === 1 ? '' : 's'} stored on this device only
+                  </div>
+                </div>
+                <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(8,14,24,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <MessageCircle size={14} color="#F4B6D7" />
+                    <span style={{ fontSize: '13.5px', color: '#F5F4F2', fontWeight: 500 }}>Your story posts</span>
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: '#64748B' }}>
+                    {ownStories} post{ownStories === 1 ? '' : 's'} you can remove anytime
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {purged && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  padding: '13px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(74, 222, 128, 0.1)',
+                  border: '1px solid rgba(74, 222, 128, 0.3)',
+                  color: '#4ade80',
+                  fontSize: '13.5px',
+                  marginBottom: '16px',
+                }}
+              >
+                <CheckCircle size={16} />
+                <span>
+                  Purged {purged.pulse} check-in{purged.pulse === 1 ? '' : 's'} and {purged.stories} story post
+                  {purged.stories === 1 ? '' : 's'} from this browser.
+                </span>
+              </div>
+            )}
             <button
               onClick={handleDeleteHistory}
               style={{

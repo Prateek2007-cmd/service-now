@@ -204,7 +204,7 @@ export default function SupportGrid({ onNavigate, onSelectDepartment }) {
               marginBottom: '1.25rem',
             }}
           >
-            Twelve specialized departments. <br />
+            Six specialized departments. <br />
             <span style={{ color: '#EBA756', fontStyle: 'italic' }}>One calm, confidential</span> front door.
           </h2>
 

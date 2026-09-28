@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect } from 'react';import {
+ 
   Users, 
   Calendar, 
   Clock, 
@@ -23,15 +23,20 @@ import {
   AlertOctagon,
   Check,
   Share2
-} from 'lucide-react';
-import { 
+} from 'lucide-react';import {
+ 
   getStore, 
   subscribeStore, 
   cancelAppointmentAndTriggerWaitlistSwap,
   acceptCaseByCounsellor,
   sendCounsellorMessage,
-  bookAppointment
+  bookAppointment,
+  markSessionComplete
 } from '../services/store';
+import DemoClockPanel from '../components/DemoClockPanel';
+import { anonymizeCase } from '../services/anonymizeService';
+import CareSummaryView from '../components/CareSummaryView';
+import { isSessionStillUpcoming } from '../services/store';
 
 export default function CounsellorPortalPage({ onNavigate }) {
   const [storeState, setStoreState] = useState(getStore());
@@ -80,6 +85,14 @@ export default function CounsellorPortalPage({ onNavigate }) {
   const urgentCasesCount = cases.filter(c => c.urgency === 'AMBER' || c.urgency === 'RED').length;
   const todayAppointmentsCount = cases.filter(c => c.appointment && c.appointment.status !== 'cancelled').length;
 
+  // A live booking is one that is confirmed and not yet finished or cancelled.
+  // Only then is a further scheduling offer suppressed.
+  const hasLiveAppointment = Boolean(
+    selectedCase?.appointment &&
+    selectedCase.appointment.status !== 'cancelled' &&
+    selectedCase.appointment.status !== 'completed'
+  );
+
   // Filter cases based on selected filter
   const filteredCases = cases.filter(c => {
     if (caseFilter === 'new') return c.status === 'Assigned to counsellor' || c.status === 'Submitted' || c.status === 'Under review';
@@ -118,7 +131,14 @@ export default function CounsellorPortalPage({ onNavigate }) {
   // 3. PRIMARY ACTION: SCHEDULE APPOINTMENT
   const handleScheduleAppointment = () => {
     if (!selectedCase) return;
-    bookAppointment({
+    // Guard the action, not just the button. The earlier audit found re-booking
+    // was unguarded and silently replaced the existing appointment.
+    if (hasLiveAppointment) {
+      setActionNotice('This student already has a scheduled consultation. Cancel or complete it first.');
+      setTimeout(() => setActionNotice(''), 5000);
+      return;
+    }
+    const result = bookAppointment({
       caseId: selectedCase.id,
       counsellorName: 'Dr. Sarah Jenkins',
       dept: 'Counselling & Mental Wellbeing',
@@ -127,7 +147,11 @@ export default function CounsellorPortalPage({ onNavigate }) {
       modality: scheduleModality
     });
     setShowScheduleModal(false);
-    setActionNotice(`Consultation reserved for ${scheduleDate} at ${scheduleTime}. Synced with student timeline.`);
+    setActionNotice(
+      result?.success
+        ? `Consultation reserved for ${scheduleDate} at ${scheduleTime}. Synced with student timeline.`
+        : (result?.error || 'Could not reserve that slot.')
+    );
     setTimeout(() => setActionNotice(''), 5000);
   };
 
@@ -148,10 +172,32 @@ export default function CounsellorPortalPage({ onNavigate }) {
     setTimeout(() => setNoteSuccess(false), 3000);
   };
 
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+
   const handleTriggerCancelAndSwap = (aptId) => {
     cancelAppointmentAndTriggerWaitlistSwap(aptId);
     setSwapSimulated(true);
     setTimeout(() => setSwapSimulated(false), 5000);
+  };
+
+  /**
+   * The counsellor closing the session. This is the real trigger for the
+   * student's feedback prompt, so it is an explicit clinical action rather than
+   * something inferred from a calendar string.
+   */
+  const handleMarkComplete = (attended) => {
+    if (!selectedCase?.appointment) return;
+    const result = markSessionComplete({
+      caseId: selectedCase.id,
+      appointmentId: selectedCase.appointment.id,
+      attended,
+      sessionNote,
+    });
+    if (result.ok) {
+      setSessionCompleted(true);
+      setCounsellorNote('');
+      setTimeout(() => setSessionCompleted(false), 5000);
+    }
   };
 
   return (
@@ -390,7 +436,7 @@ export default function CounsellorPortalPage({ onNavigate }) {
                         <div>
                           <span style={{ fontSize: '11px', color: '#78746C', fontWeight: 600 }}>{c.id}</span>
                           <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#FAF8F5', marginTop: '2px' }}>
-                            {c.studentName}
+                            {anonymizeCase(c).alias}
                           </h3>
                         </div>
                       </div>
@@ -459,10 +505,10 @@ export default function CounsellorPortalPage({ onNavigate }) {
                           <span style={{ fontSize: '12px', color: '#8DCFA9' }}>● {selectedCase.status}</span>
                         </div>
                         <h2 style={{ fontSize: '26px', fontWeight: 650, color: '#FAF8F5', marginTop: '4px' }}>
-                          {selectedCase.studentName}
+                          {anonymizeCase(selectedCase).alias}
                         </h2>
                         <div style={{ fontSize: '13px', color: '#B8B3AA', marginTop: '2px' }}>
-                          Student ID: {selectedCase.studentId} · Intake via HERE Unified Front Door
+                          Student ID: {anonymizeCase(selectedCase).maskedId} · Intake via HERE Unified Front Door
                         </div>
                       </div>
 
@@ -526,15 +572,40 @@ export default function CounsellorPortalPage({ onNavigate }) {
                           <span>2. CONTACT STUDENT</span>
                         </button>
 
-                        {/* 3. SCHEDULE APPOINTMENT */}
-                        <button
-                          onClick={() => setShowScheduleModal(true)}
-                          className="btn-warm"
-                          style={{ fontSize: '13px', padding: '10px 18px' }}
-                        >
-                          <Calendar size={16} />
-                          <span>3. SCHEDULE APPOINTMENT</span>
-                        </button>
+                        {/* 3. SCHEDULE APPOINTMENT
+                            A student who already has a live booking must not be
+                            offered a second one here: the earlier audit found
+                            that an unguarded re-book silently overwrote the
+                            first appointment. */}
+                        {hasLiveAppointment ? (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '13px',
+                              padding: '10px 18px',
+                              borderRadius: '10px',
+                              background: 'rgba(141,207,169,0.10)',
+                              border: '1px solid rgba(141,207,169,0.28)',
+                              color: '#8DCFA9'
+                            }}
+                          >
+                            <Calendar size={16} />
+                            <span>
+                              3. APPOINTMENT SCHEDULED — {selectedCase.appointment.date} at {selectedCase.appointment.time}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowScheduleModal(true)}
+                            className="btn-warm"
+                            style={{ fontSize: '13px', padding: '10px 18px' }}
+                          >
+                            <Calendar size={16} />
+                            <span>3. SCHEDULE APPOINTMENT</span>
+                          </button>
+                        )}
                       </div>
 
                       {/* Additional Secondary Actions */}
@@ -591,6 +662,16 @@ export default function CounsellorPortalPage({ onNavigate }) {
                       >
                         {selectedCase.approvedSummary || selectedCase.message}
                       </div>
+                    </div>
+
+                    {/* Structured, evidence-linked summary. Replaces the flat
+                        approvedSummary string, which was either a template or
+                        the student's raw first message. */}
+                    <div style={{ marginBottom: '1.75rem' }}>
+                      <CareSummaryView
+                        caseObj={selectedCase}
+                        studentName={anonymizeCase(selectedCase).alias}
+                      />
                     </div>
 
                     {/* Coordinated University Support Graph */}
@@ -668,7 +749,7 @@ export default function CounsellorPortalPage({ onNavigate }) {
                               >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '3px', fontSize: '11px' }}>
                                   <strong style={{ color: isCounsellor ? '#F4B6D7' : '#8EDCF2' }}>
-                                    {m.senderName || (isCounsellor ? 'Dr. Sarah Jenkins' : selectedCase.studentName)}
+                                    {m.senderName || (isCounsellor ? 'Dr. Sarah Jenkins' : anonymizeCase(selectedCase).alias)}
                                   </strong>
                                   <span style={{ color: '#78746C' }}>{m.time}</span>
                                 </div>
@@ -708,7 +789,72 @@ export default function CounsellorPortalPage({ onNavigate }) {
                           <div style={{ fontSize: '12.5px', color: '#B8B3AA' }}>
                             Advisor: {selectedCase.appointment.counsellor} ({selectedCase.appointment.modality})
                           </div>
+                          {selectedCase.appointment.status === 'completed' && (
+                            <div style={{ fontSize: '12px', color: selectedCase.appointment.attended === false ? '#FCA5A5' : '#8DCFA9', marginTop: '4px', fontWeight: 600 }}>
+                              {selectedCase.appointment.attended === false ? 'Recorded as missed' : 'Session delivered'}
+                              {selectedCase.appointment.sessionOutcome ? ' · student reviewed' : ' · awaiting student review'}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Mark the session delivered — this is what triggers the
+                            student's feedback prompt. Hidden once closed. */}
+                        {selectedCase.appointment.status !== 'completed' && selectedCase.appointment.status !== 'cancelled' && isSessionStillUpcoming(selectedCase) && (
+                          <div style={{ width: '100%', fontSize: '12px', color: '#EBA756' }}>
+                            This session has not happened yet. Use the demo clock below to skip ahead, or come back after the date.
+                          </div>
+                        )}
+
+                        {selectedCase.appointment.status !== 'completed' && selectedCase.appointment.status !== 'cancelled' && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                            <button
+                              onClick={() => handleMarkComplete(true)}
+                              style={{
+                                background: 'rgba(141, 207, 169, 0.15)',
+                                color: '#8DCFA9',
+                                border: '1px solid rgba(141, 207, 169, 0.3)',
+                                outline: 'none',
+                                padding: '8px 14px',
+                                borderRadius: '9999px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                              }}
+                              title="Confirms the session happened and asks the student for feedback"
+                            >
+                              ✓ Mark session delivered
+                            </button>
+                            <button
+                              onClick={() => handleMarkComplete(false)}
+                              style={{
+                                background: 'rgba(248, 113, 113, 0.12)',
+                                color: '#FCA5A5',
+                                border: '1px solid rgba(248, 113, 113, 0.28)',
+                                outline: 'none',
+                                padding: '8px 14px',
+                                borderRadius: '9999px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: 500,
+                              }}
+                              title="Records a no-show — the student is offered a rebooking instead of a review"
+                            >
+                              Record no-show
+                            </button>
+                          </div>
+                        )}
+
+                        {sessionCompleted && (
+                          <div style={{ fontSize: '12px', color: '#8DCFA9', fontWeight: 600, width: '100%' }}>
+                            Saved. The student has been asked how it went.
+                          </div>
+                        )}
+
+                        {selectedCase.appointment.status !== 'completed' && (
+                          <div style={{ width: '100%', marginTop: '10px' }}>
+                            <DemoClockPanel onNavigate={onNavigate} caseObj={selectedCase} />
+                          </div>
+                        )}
 
                         {/* Waitlist Swap Trigger Button */}
                         <button
@@ -819,7 +965,7 @@ export default function CounsellorPortalPage({ onNavigate }) {
                 >
                   <div>
                     <div style={{ fontSize: '11px', color: '#EBA756', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-                      Case #{c.id} · {c.studentName}
+                      Case #{c.id} · {anonymizeCase(c).alias}
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: 600, color: '#FAF8F5', marginTop: '4px' }}>
                       {c.appointment.date} · {c.appointment.time}
@@ -905,7 +1051,7 @@ export default function CounsellorPortalPage({ onNavigate }) {
                       #{index + 1}
                     </div>
                     <div>
-                      <strong style={{ fontSize: '15px', color: '#FAF8F5' }}>{item.studentName}</strong>
+                      <strong style={{ fontSize: '15px', color: '#FAF8F5' }}>{anonymizeCase(item).alias}</strong>
                       <div style={{ fontSize: '12.5px', color: '#B8B3AA' }}>
                         Case: {item.caseId} · Department: {item.department}
                       </div>
@@ -971,7 +1117,7 @@ export default function CounsellorPortalPage({ onNavigate }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <MessageSquare size={20} color="#F4B6D7" />
                 <h3 style={{ fontSize: '20px', fontWeight: 650, color: '#FAF8F5' }}>
-                  Contact Student: {selectedCase.studentName}
+                  Contact Student: {anonymizeCase(selectedCase).alias}
                 </h3>
               </div>
               <button 
@@ -1085,7 +1231,7 @@ export default function CounsellorPortalPage({ onNavigate }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Calendar size={20} color="#EBA756" />
                 <h3 style={{ fontSize: '20px', fontWeight: 650, color: '#FAF8F5' }}>
-                  Schedule Consultation for {selectedCase.studentName}
+                  Schedule Consultation for {anonymizeCase(selectedCase).alias}
                 </h3>
               </div>
               <button 

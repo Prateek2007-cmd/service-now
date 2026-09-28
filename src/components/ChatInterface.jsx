@@ -29,6 +29,10 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { AssistantOrb } from './AssistantOrb';
+import QuietBuddyInvite from './QuietBuddyInvite';
+import { BuddyPrivacyPreview } from './QuietBuddyTracker';
+import { sendAppointmentReminders } from '../services/quietBuddyService';
+import { getStore } from '../services/store';
 import { 
   getConversationState, 
   postChatMessage, 
@@ -48,6 +52,7 @@ export default function ChatInterface({ initialPrompt = '', initialDept = null, 
   const [orbState, setOrbState] = useState('idle');
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [progressPhrase, setProgressPhrase] = useState('');
+  const [buddyReminder, setBuddyReminder] = useState(null);
   
   // Inline Editing for AI Mirror (Section 14)
   const [isEditingMirror, setIsEditingMirror] = useState(false);
@@ -306,6 +311,19 @@ export default function ChatInterface({ initialPrompt = '', initialDept = null, 
       setConvState({ ...updated });
       setProgressPhrase('');
       setOrbState('handoff');
+
+      // Coordinated Quiet Buddy reminder: fires once per appointment, to both
+      // the student and the nominated buddy.
+      try {
+        const s = getStore();
+        const c = s.cases.find((item) => item.id === updated?.handoff?.caseId) || s.cases[0];
+        if (c) {
+          const res = sendAppointmentReminders({ caseObj: c, studentName: c.studentName || convState.studentName });
+          if (res && res.text) setBuddyReminder(res.text);
+        }
+      } catch (e) {
+        console.error('Quiet Buddy reminder failed:', e);
+      }
     }, 600);
   };
 
@@ -562,6 +580,31 @@ export default function ChatInterface({ initialPrompt = '', initialDept = null, 
               >
                 <span>Book an appointment directly →</span>
               </button>
+            </div>
+          )}
+
+          {/* Offline-engine notice: a canned reply must never be mistaken for a
+              real conversational response. */}
+          {convState.engineMode === 'LOCAL_RULE_ENGINE' && (
+            <div
+              role="status"
+              style={{
+                alignSelf: 'center',
+                maxWidth: '92%',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                background: 'rgba(235,167,86,0.10)',
+                border: '1px solid rgba(235,167,86,0.32)',
+                color: '#EBA756',
+                fontSize: '12.5px',
+                lineHeight: 1.55,
+                textAlign: 'center'
+              }}
+            >
+              <strong style={{ fontWeight: 600 }}>Offline reply engine.</strong>{' '}
+              This answer came from HERE&rsquo;s built-in fallback, not the live assistant
+              {convState.backendError ? ` (${convState.backendError})` : ''}.
+              Replies will sound generic until it reconnects.
             </div>
           )}
 
@@ -856,6 +899,50 @@ export default function ChatInterface({ initialPrompt = '', initialDept = null, 
                   <ArrowRight size={15} />
                 </button>
               )}
+
+              {/* Optional: nominate a Quiet Buddy alongside the request */}
+              <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ fontSize: '11.5px', color: '#78746C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px', fontWeight: 600 }}>
+                  Optional · Someone to walk with you
+                </div>
+                <QuietBuddyInvite
+                  studentName={convState.studentName}
+                  caseId={convState.handoff?.caseId || null}
+                  compact
+                />
+                <BuddyPrivacyPreview
+                  caseObj={null}
+                  studentName={convState.studentName}
+                  onNavigate={onNavigate}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Confirmation of the coordinated reminder, once an appointment is booked */}
+          {buddyReminder && (
+            <div
+              className="glass-panel animate-fade-in"
+              style={{
+                padding: '18px 20px',
+                borderRadius: '18px',
+                background: 'rgba(141, 207, 169, 0.07)',
+                border: '1px solid rgba(141, 207, 169, 0.25)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Bell size={15} color="#8DCFA9" />
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#8DCFA9', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Reminders sent
+                </span>
+              </div>
+              <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#B8B3AA' }}>
+                Sent to you and your Quiet Buddy:
+              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', padding: '13px 15px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', marginTop: '10px' }}>
+                <MessageSquare size={14} color="#8EDCF2" style={{ marginTop: 2, flexShrink: 0 }} />
+                <span style={{ fontSize: '13.5px', lineHeight: 1.6, color: '#FAF8F5' }}>{buddyReminder}</span>
+              </div>
             </div>
           )}
 
@@ -1300,7 +1387,7 @@ export default function ChatInterface({ initialPrompt = '', initialDept = null, 
                 Understanding
               </span>
               <span style={{ fontSize: '10px', color: '#8EDCF2', background: 'rgba(142,220,242,0.12)', padding: '2px 6px', borderRadius: '4px' }}>
-                {convState.engineMode || 'DEMO FALLBACK'}
+                {convState.engineMode === 'LOCAL_RULE_ENGINE' ? 'OFFLINE ENGINE' : (convState.engineMode || 'DEMO FALLBACK')}
               </span>
             </div>
 

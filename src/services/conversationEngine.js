@@ -2,8 +2,10 @@
 // Multi-turn context extraction, continuous safety, adaptive questioning, AI mirror, and human routing
 
 import { evaluateSafetyLayer } from './nlpService.js';
-import { createCaseFromAnalysis, bookAppointment, getStore } from './store.js';
+import { createCaseFromAnalysis, bookAppointment, getStore, getCurrentCase, getContinuityContext } from './store.js';
 import { getCurrentUser } from './authService.js';
+import { groundedReply, continuityOpener, detectDomains } from './groundedReplyService.js';
+import { buildCareSummary, summaryToText } from './careSummaryService.js';
 
 const CONV_STORAGE_KEY = 'HERE_CONVERSATION_STATE_V4';
 
@@ -195,8 +197,18 @@ export async function processConversation(message, conversationState) {
 
   // 4. Pure Greetings (Never assume issues, never show support options)
   if (isGreeting(lower) && conversationState.meaningfulTurns === 0 && !hasSubstantiveConcern(lower)) {
+    // A returning student gets continuity from the very first message instead of
+    // having to re-explain themselves.
+    let opener = null;
+    try {
+      opener = continuityOpener();
+    } catch (e) {
+      opener = null;
+    }
     return {
-      reply: "Hey. I'm here.\n\nWhat's been going on?",
+      reply: opener
+        ? `${opener}\n\nWhat's been going on for you today?`
+        : "Hey. I'm here.\n\nWhat's been going on?",
       stage: STAGES.OPEN,
       intent: null,
       themes: [],
@@ -648,7 +660,7 @@ export function getNextBestQuestion(state, latestStudentMessage = '') {
   if (known.hasFamilyPressure && !known.duration) {
     return {
       stage: STAGES.CLARIFY,
-      reply: "That sounds like there's pressure outside your coursework too. Is that something that's weighing on you a lot right now?",
+      reply: "That sounds like it is weighing on you.\n\nWhat is happening at home that is taking up that space?",
       options: [
         "Yeah, it's adding a lot of stress",
         "It's mostly the coursework itself",
@@ -663,7 +675,7 @@ export function getNextBestQuestion(state, latestStudentMessage = '') {
   if (known.hasFinancialIssue && !known.duration) {
     return {
       stage: STAGES.CLARIFY,
-      reply: "Financial stress makes focusing on classes ten times harder.\n\nIs the immediate worry with housing rent, tuition fee deadlines, or daily expenses?",
+      reply: "Money problems take up a lot of headspace.\n\nWhat is the most pressing part of it right now?",
       options: [
         "Tuition fee deadline",
         "Rent and housing",
@@ -675,9 +687,17 @@ export function getNextBestQuestion(state, latestStudentMessage = '') {
   }
 
   // 9. GENERAL CONVERSATIONAL LISTENING (Never jump to support options!)
+  // Reply is grounded in what the student actually raised — never in a domain
+  // they have not mentioned.
+  const grounded = groundedReply({
+    recentUserMessages: (state.messages || [])
+      .filter((m) => m.sender === 'user')
+      .slice(-3)
+      .map((m) => ({ text: m.text })),
+  });
   return {
     stage: STAGES.UNDERSTAND,
-    reply: "I'm listening. Can you tell me a little more about what's been feeling hardest to manage?",
+    reply: grounded.text,
     options: null, // Let student type naturally
     nextAction: 'LISTEN_DEEPER',
     missingInformation: ['coreConcern']
@@ -691,24 +711,48 @@ function generateAIMirror(state) {
   const known = state.knownInformation;
   const bulletPoints = [];
 
-  bulletPoints.push("You're feeling pressure from your academic workload and upcoming exams");
+  // The mirror must reflect what the student actually raised. Previously the
+  // first bullet was unconditional, so a student who only mentioned eviction was
+  // shown "pressure from your academic workload" — something they never said.
+  // Academics is now only asserted when it was genuinely raised.
+  if (known.hasAcademicIssue !== false) {
+    // hasAcademicIssue is undefined on older state; fall back to the other signals.
+    const academicsRaised =
+      known.hasAcademicIssue === true ||
+      (known.hasAcademicIssue === undefined && (known.hasConcentrationIssue || known.hasExamIssue));
+    if (academicsRaised) {
+      bulletPoints.push("Academic workload is one of the things weighing on you");
+    }
+  }
 
   if (known.hasConcentrationIssue) {
-    bulletPoints.push("You're finding it difficult to concentrate and keep up with coursework");
+    bulletPoints.push("You're finding it hard to concentrate and keep on top of things");
   }
   if (known.hasSleepIssue) {
-    const dur = known.duration ? `for ${known.duration.toLowerCase()}` : 'recently';
-    bulletPoints.push(`It's beginning to affect your sleep (${dur})`);
+    const dur = known.duration ? ` (${known.duration.toLowerCase()})` : '';
+    bulletPoints.push(`It's affecting your sleep${dur}`);
   }
   if (known.hasFinancialIssue) {
-    bulletPoints.push("Financial worries regarding rent and tuition are adding pressure");
+    bulletPoints.push("Money is a source of pressure as well");
   }
   if (known.hasFamilyPressure) {
-    bulletPoints.push("Expectations from family are compounding the deadline stress");
+    bulletPoints.push("Things at home are adding to what you are carrying");
+  }
+  if (known.hasIsolationIssue) {
+    bulletPoints.push("You are feeling quite separate from people around you");
   }
 
-  const durationStr = known.duration ? `for ${known.duration.toLowerCase()}` : 'for around two weeks';
-  const narrativeSummary = `You're feeling pressure from your academic workload, you're finding it difficult to concentrate, and it's beginning to affect your sleep. You've been dealing with this ${durationStr}.`;
+  // Never show an empty mirror. If nothing was classified, say so honestly
+  // rather than asserting a generic academic story.
+  if (bulletPoints.length === 0) {
+    bulletPoints.push('You have described how things have been feeling, though we have not pinned down the details yet');
+  }
+
+  const parts = bulletPoints.map((b) => b.replace(/^You're/, 'You are').replace(/^You /, 'You '));
+  let narrativeSummary = parts.join('. ').replace(/\.\./g, '.') + '.';
+  if (known.duration) {
+    narrativeSummary = narrativeSummary.replace(/\.$/, `, and it has been going on ${known.duration.toLowerCase()}.`);
+  }
 
   // Recommended Departments with Conversational Justifications (Section 15 & 16)
   const recommendedDepartments = [
@@ -843,6 +887,7 @@ export async function postChatMessage({ conversationId, message }) {
   }
 
   // 2. Try Calling Backend API (/api/chat) for Real Gemini Generative AI + Python ML
+  let backendFailure = null;
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -908,8 +953,14 @@ export async function postChatMessage({ conversationId, message }) {
         fullState: state
       };
     }
+    if (!response.ok) {
+      // A 500 from the backend must not look like a working assistant. Record
+      // why so the UI can say the reply came from the offline engine.
+      backendFailure = `Backend responded ${response.status}`;
+    }
   } catch (apiErr) {
     console.warn('[FRONTEND ENGINE] Backend /api/chat unreachable, falling back to local engine:', apiErr.message);
+    backendFailure = apiErr.message || 'Network error';
   }
 
   // 3. Graceful Local Fallback if API Server is Offline
@@ -934,6 +985,8 @@ export async function postChatMessage({ conversationId, message }) {
   state.missingInformation = result.missingInformation || state.missingInformation;
   state.meaningfulTurns = (state.meaningfulTurns || 0) + 1;
   state.engineMode = result.engineMode || state.engineMode;
+  state.engineMode = 'LOCAL_RULE_ENGINE';
+  state.backendError = backendFailure;
 
   if (result.aiMirrorPoints) state.aiMirrorPoints = result.aiMirrorPoints;
   if (result.provisionalSummary) {
@@ -1093,7 +1146,7 @@ export function bookConversationalAppointment(slotId) {
   state.createdCaseId = newCase.id;
 
   // 2. Attach scheduled consultation to case
-  bookAppointment({
+  const booking = bookAppointment({
     caseId: newCase.id,
     counsellorName: slot.counsellor,
     dept: slot.dept,
@@ -1101,6 +1154,12 @@ export function bookConversationalAppointment(slotId) {
     time: slot.time,
     modality: slot.modality
   });
+
+  // The case is brand new here, so a refusal means the store rejected the
+  // caseId. Do not tell the student the session is confirmed if it is not.
+  if (!booking?.success) {
+    console.warn('[CHAT] Slot reservation was refused:', booking?.error);
+  }
 
   // 3. Conversational confirmation + Beautiful Human Handoff (Section 24)
   state.handoffComplete = true;

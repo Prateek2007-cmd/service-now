@@ -26,13 +26,14 @@ import {
   markNotificationRead 
 } from '../services/store';
 import { getCurrentUser, subscribeAuth, signOut } from '../services/authService';
+import { getLanguage, setLanguage, subscribeLanguage, t, LANGUAGES } from '../services/i18nService';
 
 export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch }) {
   const [scrolled, setScrolled] = useState(false);
   const [langDropdown, setLangDropdown] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
   const [notifDropdown, setNotifDropdown] = useState(false);
-  const [selectedLang, setSelectedLang] = useState('EN');
+  const [selectedLang, setSelectedLang] = useState(getLanguage);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [storeState, setStoreState] = useState(getStore());
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
@@ -51,6 +52,10 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
     return subscribeAuth((user) => {
       setCurrentUser(user);
     });
+  }, []);
+
+  useEffect(() => {
+    return subscribeLanguage((code) => setSelectedLang(code));
   }, []);
 
   useEffect(() => {
@@ -83,19 +88,21 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const navLinks = [
-    { label: 'Home', route: '/' },
-    { label: 'How it works', route: '/how-it-works' },
-    { label: 'Support', route: '/support' },
-    { label: 'My Journey', route: '/journey' },
-    { label: 'Appointments', route: '/appointments' },
-    { label: 'Resources', route: '/resources' },
+    { label: t('nav.home'), route: '/' },
+    { label: t('nav.how'), route: '/how-it-works' },
+    { label: t('nav.support'), route: '/support' },
+    { label: t('nav.journey'), route: '/journey' },
+    { label: t('nav.appointments'), route: '/appointments' },
+    { label: t('nav.resources'), route: '/resources' },
+    { label: t('nav.stories'), route: '/stories' },
+    { label: t('nav.buddy'), route: '/quiet-buddy' },
   ];
 
   // If in counsellor or admin mode, dynamically provide portal link
   if (role === 'COUNSELLOR') {
-    navLinks.push({ label: 'Counsellor Portal', route: '/counsellor', highlight: true });
+    navLinks.push({ label: t('nav.counsellor'), route: '/counsellor', highlight: true });
   } else if (role === 'ADMIN') {
-    navLinks.push({ label: 'Admin Cockpit', route: '/admin', highlight: true });
+    navLinks.push({ label: t('nav.admin'), route: '/admin', highlight: true });
   }
 
   const handleNavClick = (route) => {
@@ -117,6 +124,19 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
 
   const handleDeclineOffer = (notifId) => {
     declineWaitlistOffer(notifId);
+  };
+
+  const markAllRead = () => {
+    notifications.forEach((n) => {
+      if (!n.read) markNotificationRead(n.id);
+    });
+  };
+
+  const handleNotificationClick = (n) => {
+    if (!n.read) markNotificationRead(n.id);
+    if (n.type === 'waitlist_offer' && !n.accepted && !n.declined) return;
+    setNotifDropdown(false);
+    if (n.route && onNavigate) onNavigate(n.route);
   };
 
   return (
@@ -329,8 +349,25 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAF8F5' }}>Notifications</span>
-                <span style={{ fontSize: '11px', color: '#78746C' }}>{unreadCount} unread</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAF8F5' }}>{t('nav.notifications')}</span>
+                {unreadCount > 0 ? (
+                  <button
+                    onClick={markAllRead}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      fontSize: '11px',
+                      color: '#8EDCF2',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t('nav.markall')}
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#78746C' }}>{t('nav.allread')}</span>
+                )}
               </div>
 
               {notifications.length === 0 ? (
@@ -340,13 +377,31 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {notifications.map((n) => (
-                    <div 
+                    <div
                       key={n.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleNotificationClick(n)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleNotificationClick(n);
+                        }
+                      }}
                       style={{
                         padding: '12px 14px',
                         borderRadius: '12px',
                         background: n.type === 'waitlist_offer' ? 'rgba(235, 167, 86, 0.12)' : 'rgba(255, 255, 255, 0.04)',
                         border: n.type === 'waitlist_offer' ? '1px solid rgba(235, 167, 86, 0.3)' : 'none',
+                        cursor: 'pointer',
+                        opacity: n.read ? 0.72 : 1,
+                        transition: 'opacity 200ms ease, background 200ms ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (n.type !== 'waitlist_offer') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (n.type !== 'waitlist_offer') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
@@ -358,6 +413,13 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
                       <p style={{ fontSize: '12px', color: '#B8B3AA', lineHeight: 1.45, marginBottom: n.type === 'waitlist_offer' ? '10px' : '4px' }}>
                         {n.message}
                       </p>
+
+                      {!n.read && n.type !== 'waitlist_offer' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', color: '#8EDCF2', fontWeight: 600, marginTop: '4px' }}>
+                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#8EDCF2' }} />
+                          <span>New · click to open</span>
+                        </div>
+                      )}
 
                       {/* Waitlist Swap Actions if Offer */}
                       {n.type === 'waitlist_offer' && !n.accepted && !n.declined && (
@@ -642,7 +704,7 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <LogOut size={14} color="#FCA5A5" />
-                  <span>Sign out</span>
+                  <span>{t('nav.signout')}</span>
                 </button>
               </div>
             )}
@@ -665,9 +727,8 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)')}
-          >
-            Sign in
-          </button>
+          >                {t('nav.signin')}
+              </button>
         )}
 
         {/* Language selector */}
@@ -713,17 +774,11 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
                 zIndex: 110,
               }}
             >
-              {[
-                { code: 'EN', name: 'English' },
-                { code: 'ES', name: 'Español' },
-                { code: 'FR', name: 'Français' },
-                { code: 'ZH', name: '中文' },
-                { code: 'HI', name: 'हिन्दी' },
-              ].map((lang) => (
+              {LANGUAGES.map((lang) => (
                 <button
                   key={lang.code}
                   onClick={() => {
-                    setSelectedLang(lang.code);
+                    setLanguage(lang.code);
                     setLangDropdown(false);
                   }}
                   style={{
@@ -743,8 +798,8 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
                     transition: 'all 150ms ease',
                   }}
                 >
-                  <span>{lang.name}</span>
-                  <span style={{ fontSize: '11px', opacity: 0.6 }}>{lang.code}</span>
+                  <span>{lang.native}</span>
+                  <span style={{ fontSize: '11px', opacity: 0.6 }}>{lang.name}</span>
                 </button>
               ))}
             </div>
@@ -774,7 +829,7 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
           onMouseEnter={(e) => (e.currentTarget.style.background = '#F8CADF')}
           onMouseLeave={(e) => (e.currentTarget.style.background = '#F4B6D7')}
         >
-          <span>Start privately</span>
+          <span>{t('nav.start')}</span>
         </button>
 
         {/* Mobile Hamburger Button */}
@@ -864,7 +919,7 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
                   cursor: 'pointer'
                 }}
               >
-                Sign out
+                {t('nav.signout')}
               </button>
             </div>
           ) : (
@@ -883,7 +938,7 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
                 cursor: 'pointer'
               }}
             >
-              Sign in
+              {t('nav.signin')}
             </button>
           )}
 
@@ -908,7 +963,7 @@ export default function Navbar({ currentRoute = '/', onNavigate, onOpenSearch })
               marginTop: '4px'
             }}
           >
-            <span>Start privately</span>
+            <span>{t('nav.start')}</span>
           </button>
         </div>
       )}

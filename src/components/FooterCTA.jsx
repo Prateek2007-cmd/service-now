@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, ShieldCheck, Heart, Sparkles, PhoneCall, Lock } from 'lucide-react';
+import { subscribeLanguage, t } from '../services/i18nService';
 
 export default function FooterCTA({ onNavigate }) {
+  // Re-render when the interface language changes so chrome strings update.
+  const [, force] = useState(0);
+  useEffect(() => subscribeLanguage(() => force((n) => n + 1)), []);
+
   return (
     <footer 
       style={{
@@ -155,8 +160,8 @@ export default function FooterCTA({ onNavigate }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#FAF8F5' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F4B6D7', boxShadow: '0 0 8px #F4B6D7' }} />
-            <span style={{ fontWeight: 600 }}>In acute distress right now?</span>
-            <span style={{ color: '#B8B3AA' }}>Free, confidential crisis guidance is open 24/7:</span>
+            <span style={{ fontWeight: 600 }}>{t('cta.crisis')}</span>
+            <span style={{ color: '#B8B3AA' }}>{t('cta.crisisBody')}</span>
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px', color: '#EBA756' }}>
@@ -205,25 +210,37 @@ export default function FooterCTA({ onNavigate }) {
             onClick={() => onNavigate('/privacy')} 
             style={{ background: 'none', border: 'none', color: '#B8B3AA', cursor: 'pointer' }}
           >
-            Privacy & FERPA
+            {t('footer.privacy')}
           </button>
           <button 
             onClick={() => onNavigate('/help')} 
             style={{ background: 'none', border: 'none', color: '#B8B3AA', cursor: 'pointer' }}
           >
-            Crisis Guidelines
+            {t('footer.crisis')}
+          </button>
+          <button 
+            onClick={() => onNavigate('/quiet-buddy')} 
+            style={{ background: 'none', border: 'none', color: '#B8B3AA', cursor: 'pointer' }}
+          >
+            {t('footer.buddy')}
+          </button>
+          <button 
+            onClick={() => onNavigate('/stories')} 
+            style={{ background: 'none', border: 'none', color: '#B8B3AA', cursor: 'pointer' }}
+          >
+            Story Wall
           </button>
           <button 
             onClick={() => onNavigate('/about')} 
             style={{ background: 'none', border: 'none', color: '#B8B3AA', cursor: 'pointer' }}
           >
-            About HERE
+            {t('footer.about')}
           </button>
           <button 
             onClick={() => onNavigate('/settings')} 
             style={{ background: 'none', border: 'none', color: '#B8B3AA', cursor: 'pointer' }}
           >
-            Settings
+            {t('footer.settings')}
           </button>
         </div>
       </div>

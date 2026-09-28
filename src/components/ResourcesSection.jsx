@@ -11,43 +11,85 @@ import {
   Heart,
   Wind,
   PhoneCall,
+  Shield,
+  MapPin,
   Play,
   CheckCircle2,
   ArrowRight
 } from 'lucide-react';
 
+/**
+ * Short spoken cue for each phase of the 4-7-8 rhythm.
+ *
+ * A breathing guide is followed with eyes closed, so a purely visual prompt
+ * is unusable. Uses the Web Speech API, which needs no asset and degrades to
+ * silence where unsupported -- the on-screen countdown still carries it.
+ */
+function speakCue(text) {
+  try {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.85;
+    u.pitch = 1;
+    u.volume = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  } catch (e) {
+    /* audio is a nice-to-have; never let it break the exercise */
+  }
+}
+
 export default function ResourcesSection({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
-  const [activeResource, setActiveResource] = useState(null);
   const [breathingActive, setBreathingActive] = useState(false);
   const [breathPhase, setBreathPhase] = useState('Inhale'); // Inhale (4s), Hold (7s), Exhale (8s)
   const [breathSeconds, setBreathSeconds] = useState(4);
+  const [breathCycles, setBreathCycles] = useState(0);
 
-  // Breathing Guide loop (4-7-8 technique)
+  const PHASE_SECONDS = { Inhale: 4, Hold: 7, Exhale: 8 };
+  const NEXT_PHASE = { Inhale: 'Hold', Hold: 'Exhale', Exhale: 'Inhale' };
+
+  // Breathing guide (4-7-8). Two effects on purpose: one ticks the visible
+  // countdown every second, the other advances the phase. A single timer only
+  // changed the phase, so the number on screen never moved -- it just sat at
+  // "4" for four seconds, then jumped to "7".
   useEffect(() => {
     if (!breathingActive) return;
+    const id = setInterval(() => {
+      setBreathSeconds(prev => {
+        if (prev > 1) return prev - 1;
+        return PHASE_SECONDS[NEXT_PHASE[breathPhase]];
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [breathingActive, breathPhase]);
 
-    let timer;
-    if (breathPhase === 'Inhale') {
-      timer = setTimeout(() => {
-        setBreathPhase('Hold');
-        setBreathSeconds(7);
-      }, 4000);
-    } else if (breathPhase === 'Hold') {
-      timer = setTimeout(() => {
-        setBreathPhase('Exhale');
-        setBreathSeconds(8);
-      }, 7000);
-    } else if (breathPhase === 'Exhale') {
-      timer = setTimeout(() => {
+  useEffect(() => {
+    if (!breathingActive) return;
+    speakCue(breathPhase);
+    const id = setTimeout(() => {
+      setBreathPhase(prev => {
+        if (prev === 'Exhale') setBreathCycles(n => n + 1);
+        return NEXT_PHASE[prev];
+      });
+      setBreathSeconds(PHASE_SECONDS[NEXT_PHASE[breathPhase]]);
+    }, PHASE_SECONDS[breathPhase] * 1000);
+    return () => clearTimeout(id);
+  }, [breathingActive, breathPhase]);
+
+  // Reset the cycle count when the exercise is stopped, not when it restarts.
+  const toggleBreathing = () => {
+    setBreathingActive(prev => {
+      if (prev) {
+        setBreathCycles(0);
         setBreathPhase('Inhale');
         setBreathSeconds(4);
-      }, 8000);
-    }
-
-    return () => clearTimeout(timer);
-  }, [breathingActive, breathPhase]);
+        try { window.speechSynthesis?.cancel(); } catch (e) { /* ignore */ }
+      }
+      return !prev;
+    });
+  };
 
   const filters = [
     'All',
@@ -106,6 +148,50 @@ export default function ResourcesSection({ onNavigate }) {
       image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=600&q=80',
       summary: 'Copy-pasteable email templates tested with university faculty that communicate distress professionally.',
       content: 'Professors are human too, but receiving vague emails 10 minutes before a deadline causes friction. This guide includes 3 proven email templates that clearly cite mitigating circumstances while proposing a realistic revised submission date.',
+    },
+    {
+      title: 'Naming What You Feel Without Self-Blame',
+      category: 'Mental Wellbeing',
+      type: 'Guide',
+      duration: '5 min read',
+      icon: Heart,
+      accentColor: '#C7B8F5',
+      image: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=600&q=80',
+      summary: 'How to describe a feeling accurately enough that someone can actually help, without turning it into a self-indictment.',
+      content: 'Most people describe a feeling with a judgement attached: "I am failing", "I am broken". Staff cannot act on that, because it describes a verdict rather than an experience. Replace the verdict with the observation: "I have not been able to concentrate for two weeks and I am avoiding my flatmates". Say the duration, say what changed, say what it stops you doing. That is what a counsellor needs, and it is far easier to say than it sounds.',
+    },
+    {
+      title: 'When You Do Not Want to Say It Out Loud',
+      category: 'Mental Wellbeing',
+      type: 'Guide',
+      duration: '4 min read',
+      icon: Shield,
+      accentColor: '#C7B8F5',
+      image: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7?auto=format&fit=crop&w=600&q=80',
+      summary: 'Writing it down, sending it to the portal, or asking a friend to speak for you are all legitimate first steps.',
+      content: 'Speaking to a counsellor in person is the hardest version of this, and it is not the only one. You can type it into the HERE chat at 2am. You can write it and not send it. You can nominate a Quiet Buddy to walk with you to the appointment. All of these are real first contacts, not lesser versions of the real thing.',
+    },
+    {
+      title: 'Finding a Counsellor and a Quiet Space on Campus',
+      category: 'Campus Life',
+      type: 'Directory',
+      duration: '2 min read',
+      icon: MapPin,
+      accentColor: '#8DCFA9',
+      image: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=600&q=80',
+      summary: 'Where support actually sits on campus, when it is open, and how to reach it without an appointment.',
+      content: 'The Counselling suite in the Student Union takes walk-ins during drop-in hours, no appointment needed. The multi-faith centre and the Students Union Advice Office both have staff trained to listen without referring you straight to a form. If you only need somewhere quiet to sit for twenty minutes, the union common room is staffed and nobody will ask you why you are there.',
+    },
+    {
+      title: 'Coping When Your Courseload Does Not Move',
+      category: 'Campus Life',
+      type: 'Guide',
+      duration: '5 min read',
+      icon: BookOpen,
+      accentColor: '#8DCFA9',
+      image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=80',
+      summary: 'The honest triage when you cannot drop modules, and which levers are actually still available.',
+      content: 'If the deadline is immovable, triage ruthlessly: protect the modules with a clinical component, drop one optional item without guilt, and go to the module tutor on record. A documented conversation is the only thing that creates an option later. Reducing your load is not admitting defeat, it is what the people who finish do.',
     },
   ];
 
@@ -258,7 +344,7 @@ export default function ResourcesSection({ onNavigate }) {
                 </h3>
                 {breathingActive && (
                   <span style={{ fontSize: '11px', background: 'rgba(141, 207, 169, 0.2)', color: '#8DCFA9', padding: '2px 8px', borderRadius: '9999px' }}>
-                    4-7-8 Rhythm
+                    4-7-8 Rhythm · cycle {breathCycles + 1}
                   </span>
                 )}
               </div>
@@ -272,7 +358,7 @@ export default function ResourcesSection({ onNavigate }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
-              onClick={() => setBreathingActive(!breathingActive)}
+              onClick={toggleBreathing}
               className={breathingActive ? "btn-secondary" : "btn-warm"}
               style={{
                 fontSize: '13.5px',
@@ -346,26 +432,25 @@ export default function ResourcesSection({ onNavigate }) {
           </div>
         </div>
 
-        {/* Resources Grid */}
+        {/* Resources — full guide shown inline, no modal */}
         <div 
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
             gap: '1.75rem',
+            alignItems: 'start',
           }}
         >
           {filtered.map((item) => {
             const IconComp = item.icon;
             return (
-              <div 
+              <article
                 key={item.id}
-                onClick={() => setActiveResource(item)}
-                className="glass-panel glass-panel-hover"
+                className="glass-panel"
                 style={{
                   borderRadius: '24px',
                   overflow: 'hidden',
                   background: 'rgba(24, 23, 32, 0.75)',
-                  cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                 }}
@@ -421,116 +506,49 @@ export default function ResourcesSection({ onNavigate }) {
                   </span>
                 </div>
 
-                {/* Body Content */}
-                <div style={{ padding: '22px 24px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#FAF8F5', marginBottom: '8px', lineHeight: 1.35 }}>
-                      {item.title}
-                    </h3>
-                    <p style={{ fontSize: '13.5px', color: '#B8B3AA', lineHeight: 1.55 }}>
-                      {item.summary}
+                {/* Body Content — the whole guide, readable in place */}
+                <div style={{ padding: '22px 24px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#FAF8F5', marginBottom: '8px', lineHeight: 1.35 }}>
+                    {item.title}
+                  </h3>
+                  <p style={{ fontSize: '13.5px', color: '#B8B3AA', lineHeight: 1.55, marginBottom: '16px' }}>
+                    {item.summary}
+                  </p>
+
+                  <div
+                    style={{
+                      borderTop: '1px solid rgba(255, 255, 255, 0.07)',
+                      paddingTop: '16px',
+                    }}
+                  >
+                    <p style={{ fontSize: '14.5px', color: '#E8E4DC', lineHeight: 1.75, margin: 0 }}>
+                      {item.content}
                     </p>
                   </div>
 
-                  <div 
+                  <div
                     style={{
-                      marginTop: '1.25rem',
+                      marginTop: '18px',
                       paddingTop: '14px',
                       borderTop: '1px solid rgba(255, 255, 255, 0.06)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '13px',
+                      gap: '8px',
+                      fontSize: '12.5px',
                       color: item.accentColor,
                       fontWeight: 600,
                     }}
                   >
-                    <span>Read Guide</span>
-                    <ArrowRight size={14} />
+                    <IconComp size={14} />
+                    <span>{item.category}</span>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       </div>
 
-      {/* Resource Reading Modal */}
-      {activeResource && (
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 150,
-            backgroundColor: 'rgba(7, 7, 10, 0.88)',
-            backdropFilter: 'blur(20px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
-          onClick={() => setActiveResource(null)}
-        >
-          <div 
-            style={{
-              position: 'relative',
-              maxWidth: '640px',
-              width: '100%',
-              background: '#16151E',
-              borderRadius: '28px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 30px 70px rgba(0, 0, 0, 0.8)',
-              padding: 'clamp(24px, 4vw, 36px)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '12px', color: activeResource.accentColor, fontWeight: 600, textTransform: 'uppercase' }}>
-                {activeResource.category} • {activeResource.duration}
-              </span>
-              <button
-                onClick={() => setActiveResource(null)}
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#B8B3AA',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <h3 className="font-editorial" style={{ fontSize: '26px', color: '#FAF8F5', marginBottom: '1.25rem' }}>
-              {activeResource.title}
-            </h3>
-
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#FAF8F5', marginBottom: '1.75rem' }}>
-              {activeResource.content}
-            </p>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                onClick={() => {
-                  setActiveResource(null);
-                  onNavigate('/chat');
-                }}
-                className="btn-primary"
-                style={{ fontSize: '13.5px', padding: '10px 20px' }}
-              >
-                <span>Discuss with Support Partner</span>
-                <ArrowRight size={15} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

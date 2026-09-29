@@ -37,7 +37,7 @@ export async function classifySupportCase(text) {
 
 function runPythonPredict(text) {
   return new Promise((resolve, reject) => {
-    execFile('python', [SCRIPT_PATH, text], { timeout: 4000 }, (error, stdout, stderr) => {
+    execFile('python', [SCRIPT_PATH, text], { timeout: 8000 }, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
